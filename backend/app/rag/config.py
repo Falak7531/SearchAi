@@ -12,7 +12,12 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
 
-load_dotenv()
+# Load .env from the repo root, no matter where the process is launched from.
+# This file lives at: <repo>/backend/app/rag/config.py -> parents[3] == <repo>
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+for _candidate in (_REPO_ROOT / ".env", _REPO_ROOT / "backend" / ".env"):
+    if _candidate.exists():
+        load_dotenv(_candidate, override=False)
 
 
 class AppConfig(BaseModel):

@@ -11,7 +11,7 @@ Production-ready hybrid AI search engine combining **semantic search** (FAISS + 
 │   │   ├── pages/        Home, Results
 │   │   ├── hooks/        useSearch
 │   │   └── services/     api.js (centralized API client)
-│   └── Dockerfile
+│   └── vite.config.js
 │
 ├── backend/           FastAPI API server
 │   ├── app/
@@ -26,11 +26,13 @@ Production-ready hybrid AI search engine combining **semantic search** (FAISS + 
 │   │   │   └── generation/  llm_client (Groq), prompt_builder
 │   │   ├── core/         app config
 │   │   └── utils/        preprocessing, scoring
-│   └── Dockerfile
+│   ├── Procfile          deployment entry (Heroku/Render)
+│   ├── runtime.txt       Python version pin
+│   └── requirements.txt
 │
 ├── data/              Product catalog (JSON)
 ├── scripts/           Data loading & embedding generation
-├── infra/             docker-compose.yml
+├── render.yaml        Render Blueprint (backend + static frontend)
 └── experiments/       Jupyter notebooks (not production)
 ```
 
@@ -66,16 +68,31 @@ BACKEND_PORT=8000
 VITE_API_BASE_URL=http://localhost:8000
 ```
 
-## Docker Deployment
+## Production Deployment
 
+This project deploys as a **two-service Render Blueprint** (or any Python host: Railway, Fly.io, Heroku). No Docker required.
+
+### Render (one-click via [render.yaml](render.yaml))
+1. Push the repo to GitHub.
+2. In Render → **New → Blueprint** → select the repo.
+3. Set `GROQ_API_KEY` in the backend service's environment dashboard.
+4. Update `ALLOWED_ORIGINS` (backend) and `VITE_API_URL` (frontend) to match your final domains.
+
+### Manual / other platforms
+**Backend** start command:
 ```bash
-cd infra
-docker compose up --build
+uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
+- Working directory: `backend/`
+- Build: `pip install -r backend/requirements.txt`
+- Health check path: `/health`
+- Required env: `GROQ_API_KEY`, `ALLOWED_ORIGINS`
 
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- Health check: http://localhost:8000/health/
+**Frontend** (static):
+```bash
+npm ci && npm run build       # produces frontend/dist
+```
+- Set `VITE_API_URL` at build time to your backend's public URL.
 
 ## API Endpoints
 
@@ -92,4 +109,4 @@ docker compose up --build
 - **Backend**: FastAPI, Pydantic, uvicorn
 - **Search**: FAISS (semantic), Elasticsearch (keyword), sentence-transformers
 - **RAG**: Groq (LLM), BM25 + FAISS hybrid retrieval, LangChain text splitters
-- **Deployment**: Docker, nginx, docker-compose
+- **Deployment**: Render / Railway / Fly.io (no Docker required)
