@@ -5,6 +5,7 @@ Exposes POST /search for semantic product search and returns full product
 records enriched with relevance scores so the frontend can render cards.
 """
 
+import re
 from fastapi import APIRouter, HTTPException
 
 from app.db.database import db
@@ -40,10 +41,22 @@ async def search(request: SearchRequest):
     if not query:
         raise HTTPException(status_code=400, detail="Query must not be blank.")
 
+    max_price = None
+    min_price = None
+
+    match_max = re.search(r'(?:under|less than|below|max|<|<=)\s*\$?\s*(\d+(?:\.\d{1,2})?)', query, re.IGNORECASE)
+    if match_max:
+        max_price = float(match_max.group(1))
+
+    match_min = re.search(r'(?:over|more than|above|min|>|>=)\s*\$?\s*(\d+(?:\.\d{1,2})?)', query, re.IGNORECASE)
+    if match_min:
+        min_price = float(match_min.group(1))
+
     try:
+        # Fetch more candidates to account for filtering
         scored_results = semantic_search_service.search_with_scores_normalized(
             query=query,
-            k=request.top_k,
+            k=max(request.top_k * 5, 50),
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Search failed: {str(exc)}")
@@ -59,7 +72,16 @@ async def search(request: SearchRequest):
         if request.category and product.get("category") != request.category:
             continue
 
+        price = float(product.get("price", 0))
+        if max_price is not None and price >= max_price:
+            continue
+        if min_price is not None and price <= min_price:
+            continue
+
         results.append(_to_product_result(product, item["score"]))
+
+        if len(results) >= request.top_k:
+            break
 
     return SearchResponse(
         query=query,
