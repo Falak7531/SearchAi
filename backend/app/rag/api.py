@@ -7,8 +7,6 @@ from functools import lru_cache
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app.rag.pipeline import RAGPipeline
-
 router = APIRouter()
 
 
@@ -38,8 +36,9 @@ class RAGQueryResponse(BaseModel):
 
 
 @lru_cache(maxsize=1)
-def get_rag_pipeline() -> RAGPipeline:
-    """Create the pipeline lazily so app import does not require eager model boot."""
+def get_rag_pipeline():
+    """Create the pipeline lazily — heavy imports deferred to first RAG call."""
+    from app.rag.pipeline import RAGPipeline
     return RAGPipeline()
 
 
