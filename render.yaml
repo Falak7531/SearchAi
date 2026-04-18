@@ -17,7 +17,7 @@ services:
       - key: GROQ_API_KEY
         sync: false        # set in Render dashboard, do not commit
       - key: ALLOWED_ORIGINS
-        value: "https://your-frontend-domain.com"
+        value: "https://search-ai-ebon.vercel.app"
 
   - type: web
     name: ai-ecommerce-search-frontend
@@ -27,7 +27,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        value: "https://ai-ecommerce-search-backend.onrender.com"
+        value: "https://searchai-oftu.onrender.com"
     routes:
       - type: rewrite
         source: /*
